@@ -1,0 +1,3 @@
+@ECHO OFF
+ECHO Installing python dependencies...
+pip install -r requirements.txt
