@@ -24,18 +24,21 @@ def get_files_in_directory():
     return [ f for f in os.listdir( os.curdir ) if os.path.isfile(f) ] #list comprehension version.
 
 
-def get_sanitised_list_from_file(file_path):
+def get_sanitised_unordered_list_from_file(file_path):
     file_contents = []
     with open(file_path) as f:
         file_contents = f.readlines()
     stripped_contents = list(map(lambda val : val.strip(), file_contents))
-    return stripped_contents
+    length_pairs = list(map(lambda v : (-len(v), v), stripped_contents))
+    length_pairs.sort()
+    return list(map(lambda pair : pair[1], length_pairs))
 
 
 def create_clip(file_path):
     IMAGE_EXTENSIONS = ["jpg", "jpeg", "png"]
     is_image = any(filter(lambda ext : file_path.endswith(ext), IMAGE_EXTENSIONS))
-    return resize(ImageClip(file_path, duration=IMAGE_DURATION), width=TARGET_WIDTH, height=TARGET_HEIGHT) if is_image else VideoFileClip(file_path, target_resolution=(TARGET_HEIGHT, TARGET_WIDTH))
+    return resize(ImageClip(file_path, duration=IMAGE_DURATION), width=TARGET_WIDTH, height=TARGET_HEIGHT) if is_image \
+        else VideoFileClip(file_path, target_resolution=(TARGET_HEIGHT, TARGET_WIDTH)).set_fps(FPS)
 
 
 def create_final_video(file_paths):
@@ -43,7 +46,14 @@ def create_final_video(file_paths):
     full_cwd_path = get_working_directory_as_list()
     final_clip_name = full_cwd_path[-1] if full_cwd_path else "result"
     final_clip_name += ".mp4"
-    clips = [create_clip(path) for path in file_paths]
+    clips = []
+    for path in file_paths:
+        try:
+            print(f"Creating clip for {path}...")
+            new_clip = create_clip(path)
+            clips.append(new_clip)
+        except AttributeError:
+            print(f"The file {path} could not be converted into a clip! It will be skipped.")
     
     final_clip = concatenate_videoclips(clips, method="compose", padding=BUFFER_DURATION)
     final_clip.write_videofile(final_clip_name, fps=FPS)
@@ -51,8 +61,8 @@ def create_final_video(file_paths):
 
 
 def run():
-    file_prefixes = get_sanitised_list_from_file(FILE_PREFIX_WHITELIST_PATH)
-    file_extensions = get_sanitised_list_from_file(FILE_EXTENSION_WHITELIST_PATH)
+    file_prefixes = get_sanitised_unordered_list_from_file(FILE_PREFIX_WHITELIST_PATH)
+    file_extensions = get_sanitised_unordered_list_from_file(FILE_EXTENSION_WHITELIST_PATH)
     files_in_directory = get_files_in_directory()
     print(f"Prefix whitelist: {file_prefixes}")
     print(f"Extension whitelist: {file_extensions}")
@@ -67,7 +77,6 @@ def run():
     print(f"Found { len(files_in_directory) } files. { len(filtered_file_pairs) } match the whitelists.")
     filtered_file_pairs.sort()
     resulting_files = list(map(lambda pair : pair[1], filtered_file_pairs))
-    print("Result", resulting_files)
     if resulting_files:
         create_final_video(resulting_files)
     else:
