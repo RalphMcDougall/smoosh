@@ -6,8 +6,8 @@ from moviepy.video.fx.resize import resize
 TARGET_HEIGHT = 720
 TARGET_WIDTH = 1280
 FPS = 30
-IMAGE_DURATION = 5
-BUFFER_DURATION = 0.5
+IMAGE_DURATION = 2.5
+BUFFER_DURATION = 0
 
 IS_WINDOWS = (platform.system() == "Windows")
 FILE_PATH_SPLIT_TOKEN = "\\" if IS_WINDOWS else "/"
